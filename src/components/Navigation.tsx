@@ -22,7 +22,7 @@ const Navigation = () => {
               <Waves className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-xl text-foreground">NEERVA</h1>
+              <h1 className="font-bold text-xl text-foreground"> MarineXplorers</h1>
               <p className="text-xs text-muted-foreground">
                 AI-Driven Unified Data Platform for Oceanographic, Fisheries,
                 and Molecular Biodiversity Insights
