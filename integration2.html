@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisheries Analysis - Marine Analysis Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; line-height: 1.6; color: #334155; background: #ffffff; min-height: 100vh; }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #3a3f4a, #bfc3c7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .header { background: #ffffff; padding: 1rem 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); backdrop-filter: blur(10px); }
+        .header h1 { color: #1e293b; font-size: 2rem; font-weight: 700; }
+        .navigation { display: flex; gap: 1rem; padding: 1rem 0; }
+        .nav-item { display: block; padding: 1rem; background: #f8fafc; border: none; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; text-align: left; width: 100%; font-size: 1rem; color: #1e293b; text-decoration: none; text-align: center; }
+        .nav-item:hover { background: #f1f5f9; color: #1e293b; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(30, 41, 59, 0.1); }
+        .nav-item.active { background: #e2e8f0; color: #1e293b; box-shadow: 0 5px 15px rgba(30, 41, 59, 0.08); pointer-events: none; }
+        .container { max-width: 100%; margin: 0; padding: 2rem; }
+        .module { background: #ffffff; border-radius: 15px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); backdrop-filter: blur(10px); }
+        .module h2 { color: #1e293b; margin-bottom: 1.5rem; font-size: 1.8rem; }
+        .upload-area { border: 2px dashed #1e293b; border-radius: 10px; padding: 2rem; text-align: center; margin-bottom: 2rem; background: #ffffff; }
+        .upload-btn, .sample-data-btn { padding: 1rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: all 0.3s ease; margin: 0.5rem; }
+        .upload-btn { background: #1e293b; border: 2px solid #1e293b; color: #ffffff; }
+        .sample-data-btn { background: transparent; color: #1e293b; border: 2px solid #1e293b; }
+        .upload-btn:hover { background: #0f172a; border-color: #0f172a; box-shadow: 0 4px 12px rgba(30,41,59,0.3); }
+        .sample-data-btn:hover { background: #1e293b; color: #ffffff; box-shadow: 0 4px 12px rgba(30,41,59,0.2); }
+        .loading { display: none; text-align: center; padding: 2rem; color: #1e293b; font-size: 1.1rem; }
+        .loading.active { display: block; }
+        .data-summary { background: #f8fafc; border-left: 4px solid #1e293b; padding: 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
+        .filters { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .filter-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .filter-group label { font-weight: 600; color: #1e293b; }
+        .filter-group input, .filter-group select { padding: 0.5rem; border: 1px solid #bdc3c7; border-radius: 5px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: #ffffff; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 2rem; font-weight: bold; color: #1e293b; }
+        .stat-label { color: #64748b; margin-top: 0.5rem; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .chart-container { background: #ffffff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 420px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Marine Data Analysis Platform</h1>
+        <a href="#" class="logo">MarineXplorers</a>
+    </div>
+
+    <div class="container">
+        <div id="fisheries" class="module">
+            <h2> Fisheries Data Analysis</h2>
+            <div class="upload-area">
+                <p>Upload CSV file with columns: sample_id, date, species_scientific, count, avg_length_mm, life_stage</p>
+                <input type="file" id="fisheries-file" accept=".csv,.xlsx,.xls" style="display: none;">
+                <button class="upload-btn" onclick="document.getElementById('fisheries-file').click()">📁 Upload Data File</button>
+                <button class="sample-data-btn" onclick="loadFisheriesSampleData()">🔬 Load Sample Data</button>
+                <button class="sample-data-btn" onclick="predictFisheries()">🤖 Run Prediction</button>
+                <div id="fisheries-prediction-output" class="prediction-result" style="display:none;"></div>
+
+
+            </div>
+            <div class="loading" id="fisheries-loading">Processing fisheries data...</div>
+            <div id="fisheries-dashboard" style="display: none;">
+                <div class="data-summary" id="fisheries-summary"></div>
+                <div class="filters">
+                    <div class="filter-group"><label>Species</label><select id="fisheries-species" onchange="updateFisheriesCharts()"><option value="">All Species</option></select></div>
+                    <div class="filter-group"><label>Life Stage</label><select id="fisheries-stage" onchange="updateFisheriesCharts()"><option value="">All Stages</option></select></div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-value" id="fisheries-samples">0</div><div class="stat-label">Total Samples</div></div>
+                    <div class="stat-card"><div class="stat-value" id="fisheries-species-count">0</div><div class="stat-label">Unique Species</div></div>
+                    <div class="stat-card"><div class="stat-value" id="fisheries-total-fish">0</div><div class="stat-label">Total Fish</div></div>
+                    <div class="stat-card"><div class="stat-value" id="fisheries-avg-length">0mm</div><div class="stat-label">Avg Length</div></div>
+                </div>
+                <div class="dashboard">
+                    <div class="chart-container"><h3>Species Abundance</h3><canvas id="fisheries-abundance-chart"></canvas></div>
+                    <div class="chart-container"><h3>Length Distribution</h3><canvas id="fisheries-length-chart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fisheriesData = [];
+        let charts = {};
+
+        function loadFisheriesSampleData() {
+            const sampleData = generateFisheriesSampleData();
+            processFisheriesData(sampleData);
+        }
+
+        function generateFisheriesSampleData() {
+            const data = [];
+            const speciesList = ["Scomberomorus guttatus", "Pampus argenteus", "Rastrelliger kanagurta", "Sardinella longiceps"];
+            const stages = ["Juvenile", "Adult"];
+            for (let i = 0; i < 150; i++) {
+                const species = speciesList[Math.floor(Math.random() * speciesList.length)];
+                const stage = stages[Math.floor(Math.random() * stages.length)];
+                data.push({
+                    sample_id: `FSH${String(i + 1).padStart(3, '0')}`,
+                    date: new Date(new Date('2024-01-01').getTime() + Math.random() * 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    species_scientific: species,
+                    count: Math.floor(Math.random() * 50) + 5,
+                    avg_length_mm: stage === "Adult" ? 150 + Math.random() * 100 : 40 + Math.random() * 50,
+                    life_stage: stage
+                });
+            }
+            return data;
+        }
+
+        function handleFisheriesFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const lower = (file.name || '').toLowerCase();
+            const isCsv = lower.endsWith('.csv');
+            if (!isCsv) {
+                alert('Excel detected. Please click "Submit to Server" to process .xlsx/.xls files.');
+                return;
+            }
+            document.getElementById('fisheries-loading').classList.add('active');
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: function(results) { processFisheriesData(results.data); }
+            });
+        }
+
+        function submitFisheriesFile() {
+            const input = document.getElementById('fisheries-file');
+            if (!input || !input.files || input.files.length === 0) {
+                alert('Please select a file before submitting.');
+                return;
+            }
+            handleFisheriesFile({ target: { files: [ input.files[0] ] } });
+        }
+
+        function processFisheriesData(data) {
+            document.getElementById('fisheries-loading').classList.add('active');
+            setTimeout(() => {
+                fisheriesData = data.filter(row => row.sample_id && row.species_scientific).map(row => ({
+                    ...row,
+                    count: parseInt(row.count) || 0,
+                    avg_length_mm: parseFloat(row.avg_length_mm) || 0,
+                }));
+                setupFisheriesFilters();
+                updateFisheriesCharts();
+                document.getElementById('fisheries-loading').classList.remove('active');
+                document.getElementById('fisheries-dashboard').style.display = 'block';
+            }, 500);
+        }
+        
+        function getFilteredFisheriesData() {
+            const species = document.getElementById('fisheries-species').value;
+            const stage = document.getElementById('fisheries-stage').value;
+            
+            return fisheriesData.filter(row => 
+                (species === "" || row.species_scientific === species) &&
+                (stage === "" || row.life_stage === stage)
+            );
+        }
+
+        function setupFisheriesFilters() {
+            const species = [...new Set(fisheriesData.map(item => item.species_scientific))];
+            const stages = [...new Set(fisheriesData.map(item => item.life_stage))];
+            
+            const speciesSelect = document.getElementById('fisheries-species');
+            speciesSelect.innerHTML = '<option value="">All Species</option>';
+            species.forEach(s => speciesSelect.innerHTML += `<option value="${s}">${s}</option>`);
+
+            const stageSelect = document.getElementById('fisheries-stage');
+            stageSelect.innerHTML = '<option value="">All Stages</option>';
+            stages.forEach(s => stageSelect.innerHTML += `<option value="${s}">${s}</option>`);
+        }
+        
+        function updateFisheriesCharts() {
+            const filteredData = getFilteredFisheriesData();
+            updateFisheriesSummary(filteredData);
+            Object.values(charts).forEach(chart => chart.destroy());
+            createFisheriesAbundanceChart(filteredData);
+            createFisheriesLengthChart(filteredData);
+        }
+
+        function updateFisheriesSummary(data) {
+            const totalSamples = data.length;
+            const totalFish = data.reduce((sum, row) => sum + row.count, 0);
+            document.getElementById('fisheries-summary').innerHTML = `<strong>Data Summary:</strong> Displaying ${totalSamples} filtered fisheries samples.`;
+            document.getElementById('fisheries-samples').textContent = totalSamples;
+            document.getElementById('fisheries-species-count').textContent = new Set(data.map(r => r.species_scientific)).size;
+            document.getElementById('fisheries-total-fish').textContent = totalFish;
+            if (totalFish > 0) {
+                const totalLength = data.reduce((sum, row) => sum + (row.avg_length_mm * row.count), 0);
+                document.getElementById('fisheries-avg-length').textContent = (totalLength / totalFish).toFixed(1) + 'mm';
+            } else {
+                document.getElementById('fisheries-avg-length').textContent = '0mm';
+            }
+        }
+        
+        function createFisheriesAbundanceChart(data) {
+            const ctx = document.getElementById('fisheries-abundance-chart').getContext('2d');
+            const abundance = data.reduce((acc, row) => {
+                acc[row.species_scientific] = (acc[row.species_scientific] || 0) + row.count;
+                return acc;
+            }, {});
+            charts.abundance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(abundance),
+                    datasets: [{
+                        label: 'Total Count',
+                        data: Object.values(abundance),
+                        backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f']
+                    }]
+                },
+                options: { indexAxis: 'y', responsive: true, aspectRatio: 1.4 }
+            });
+        }
+        
+        function createFisheriesLengthChart(data) {
+            const ctx = document.getElementById('fisheries-length-chart').getContext('2d');
+            const stages = [...new Set(data.map(item => item.life_stage))];
+            const datasets = stages.map((stage, i) => {
+                const stageData = data.filter(row => row.life_stage === stage);
+                const color = i === 0 ? 'rgba(231, 76, 60, 0.6)' : 'rgba(52, 152, 219, 0.6)';
+                return {
+                    label: stage,
+                    data: stageData.map(row => row.avg_length_mm),
+                    backgroundColor: color
+                };
+            });
+            charts.length = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(row => row.sample_id), 
+                    datasets: datasets,
+                },
+                options: {
+                    plugins: { title: { display: true, text: 'Average Length by Life Stage' }},
+                    scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Avg Length (mm)'} }},
+                    responsive: true,
+                    aspectRatio: 1.4
+                }
+            });
+        }
+
+        async function submitFisheriesToServer() {
+            const input = document.getElementById('fisheries-file');
+            if (!input || !input.files || input.files.length === 0) {
+                alert('Please select a file before submitting to server.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            document.getElementById('fisheries-loading').classList.add('active');
+            try {
+                const res = await fetch('http://127.0.0.1:5000/upload_integration2', { method: 'POST', body: formData });
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload.error || 'Server error');
+                if (payload.sample) processFisheriesData(payload.sample);
+                if (payload.summary) {
+                    const s = payload.summary;
+                    document.getElementById('fisheries-summary').innerHTML = `
+                        <strong>Server Summary:</strong> Samples: ${s.total_samples}, Unique species: ${s.unique_species}, Total fish: ${s.total_fish}, Avg length: ${s.avg_length ?? '-'}mm`;
+                }
+                if (payload.charts) {
+                    const map = [
+                        { title: 'Species Abundance', html: payload.charts.abundance },
+                        { title: 'Length Distribution', html: payload.charts.length_dist },
+                        { title: 'Trend', html: payload.charts.trend }
+                    ];
+                    const dash = document.querySelector('#fisheries-dashboard .dashboard');
+                    if (dash) {
+                        dash.innerHTML = '';
+                        map.forEach(c => {
+                            if (!c.html) return;
+                            const card = document.createElement('div');
+                            card.className = 'chart-container';
+                            card.innerHTML = `<h3>${c.title}</h3>` + c.html;
+                            dash.appendChild(card);
+                        });
+                    }
+                    document.getElementById('fisheries-dashboard').style.display = 'block';
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Server processing failed. Falling back to local parsing.');
+                submitFisheriesFile();
+            } finally {
+                document.getElementById('fisheries-loading').classList.remove('active');
+            }
+        }
+        async function predictFisheries() {
+    const input = document.getElementById('fisheries-file');
+    if (!input || !input.files || input.files.length === 0) {
+        alert('Please select a file before running prediction.');
+        return;
+    }
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/api/predict_fish", { method: "POST", body: formData });
+        const data = await res.json();
+        const output = document.getElementById('fisheries-prediction-output');
+        output.style.display = "block";
+        output.innerHTML = `<strong>Predictions:</strong> ${JSON.stringify(data)}`;
+    } catch (err) {
+        console.error(err);
+        alert("Prediction failed. Check server logs.");
+    }
+}
+
+    </script>
+</body>
+</html>

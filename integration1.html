@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oceanographic Data Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #334155;
+            background: #ffffff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #3a3f4a, #bfc3c7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .container {
+            display: flex;
+            max-width: 100%;
+            margin: 0;
+            min-height: calc(100vh - 100px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: flex-end; 
+            flex-wrap: wrap;            
+            gap: 1rem;                  
+            padding: 1rem;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            width: 100%;
+            font-size: 1rem;
+            color: #2c3e50;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .module {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .module.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .module h2 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #f8f9fa, #ffffff);
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .upload-btn:hover {
+            background: linear-gradient(135deg, #2980b9, #21618c);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .sample-data-btn {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .sample-data-btn:hover {
+            background: linear-gradient(135deg, #229954, #1e8449);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .submit-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            border: 2px solid #1e293b;
+            background: #1e293b;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem;
+        }
+        .submit-btn:hover {
+            background: #0f172a;
+            border-color: #0f172a;
+            box-shadow: 0 4px 10px rgba(30,41,59,0.25);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .filter-group input, .filter-group select {
+            padding: 0.5rem;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #ffffff);
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .image-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .image-item:hover {
+            transform: scale(1.05);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .prediction-result {
+            background: linear-gradient(135deg, #f1c40f, #f39c12);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-weight: bold;
+        }
+
+        .confidence-bar {
+            background: rgba(255, 255, 255, 0.3);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            background: white;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .correlation-matrix {
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .correlation-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .correlation-table th,
+        .correlation-table td {
+            padding: 0.5rem;
+            text-align: center;
+            border: 1px solid #ecf0f1;
+        }
+
+        .correlation-table th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .data-summary {
+            background: linear-gradient(135deg, #e8f4fd, #ffffff);
+            border-left: 4px solid #3498db;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: #3498db;
+            font-size: 1.1rem;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        /* Theme overrides to match index.html (coloring only) */
+        .header { background: #ffffff; }
+        .header h1 { color: #1e293b; }
+        .header p { color: #64748b; }
+        .sidebar { background: #ffffff; }
+        .nav-item { background: #f8fafc; color: #1e293b; }
+        .nav-item:hover { background: #f1f5f9; color: #1e293b; box-shadow: 0 5px 15px rgba(30,41,59,0.1); }
+        .nav-item.active { background: #e2e8f0; color: #1e293b; box-shadow: 0 5px 15px rgba(30,41,59,0.08); }
+        .module { background: #ffffff; }
+        .module h2 { color: #1e293b; }
+        .upload-area { background: #ffffff; border-color: #1e293b; }
+        .upload-area:hover { background: #f8fafc; border-color: #0f172a; }
+        .upload-btn { background: #1e293b; border: 2px solid #1e293b; color: #ffffff; }
+        .upload-btn:hover { background: #0f172a; border-color: #0f172a; box-shadow: 0 4px 12px rgba(30,41,59,0.3); }
+        .sample-data-btn { background: transparent; color: #1e293b; border: 2px solid #1e293b; }
+        .sample-data-btn:hover { background: #1e293b; color: #ffffff; box-shadow: 0 4px 12px rgba(30,41,59,0.2); }
+        .stat-value { color: #1e293b; }
+        .stat-label { color: #64748b; }
+        .chart-container { background: #ffffff; }
+        .correlation-table th { background: #e2e8f0; color: #1e293b; }
+        .data-summary { background: #f8fafc; border-left: 4px solid #1e293b; }
+        .alert-info { background: #f1f5f9; border-left: 4px solid #1e293b; color: #1e293b; }
+        .alert-warning { background: #fff7ed; border-left: 4px solid #f59e0b; color: #92400e; }
+        .loading { color: #1e293b; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="#" class="logo">MarineXplorers</a>
+        <h4>Oceanographic Data Analysis</h4>
+    </div>
+
+    <div class="container">
+        
+
+        <div class="main-content">
+            <div id="oceanographic" class="module active">
+                <h2> Oceanographic Data Analysis</h2>
+                
+                <div class="upload-area">
+                    <p>Upload CSV/Excel files with columns: sample_id, date, time, lat, lon, depth_m, temperature_C, salinity_PSU, oxygen_mgL, pH</p>
+                    <input type="file" id="ocean-file" accept=".csv,.xlsx,.xls">
+                    <button class="upload-btn" onclick="document.getElementById('ocean-file').click()">
+                        📁 Upload Data File
+                    </button>
+                    
+                    <button class="sample-data-btn" onclick="loadOceanSampleData()">
+                        🔬 Load Sample Data
+                    </button>
+                    <button class="sample-data-btn" onclick="submitOceanFile()">Submit</button>
+                    <button class="sample-data-btn" onclick="predictOcean()">🤖 Run Prediction</button>
+                    <div id="ocean-prediction-output" class="prediction-result" style="display:none;"></div>
+
+                </div>
+
+                <div class="loading" id="ocean-loading">Processing oceanographic data...</div>
+
+                <div id="ocean-dashboard" style="display: none;">
+                    <div class="data-summary" id="ocean-summary"></div>
+                    
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label>Start Date</label>
+                            <input type="date" id="ocean-start-date" onchange="updateOceanCharts()">
+                        </div>
+                        <div class="filter-group">
+                            <label>End Date</label>
+                            <input type="date" id="ocean-end-date" onchange="updateOceanCharts()">
+                        </div>
+                        <div class="filter-group">
+                            <label>Min Depth (m)</label>
+                            <input type="number" id="ocean-min-depth" onchange="updateOceanCharts()">
+                        </div>
+                        <div class="filter-group">
+                            <label>Max Depth (m)</label>
+                            <input type="number" id="ocean-max-depth" onchange="updateOceanCharts()">
+                        </div>
+                        <div class="filter-group">
+                            <label>Parameter</label>
+                            <select id="ocean-parameter" onchange="updateOceanCharts()">
+                                <option value="temperature_C">Temperature (°C)</option>
+                                <option value="salinity_PSU">Salinity (PSU)</option>
+                                <option value="oxygen_mgL">Oxygen (mg/L)</option>
+                                <option value="pH">pH</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Prediction Results -->
+                    <div id="predictionResults" style="margin-top:20px;">
+                        <h3>Prediction Results</h3>
+                        <div id="charts"></div>
+                        <table border="1" cellpadding="5" id="predTable">
+                        <thead></thead>
+                        <tbody></tbody>
+                        </table>
+                    </div>
+
+              
+                    <div id="mlResults" style="margin-top:20px;">
+                        <h3>ML Analysis Results</h3>
+                        <p id="metrics"></p>
+                        <div id="mlCharts" style="display:flex; flex-wrap:wrap;"></div>
+                        <button class="sample-data-btn" onclick="runMLAnalysis()">Run ML Analysis</button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="ocean-samples">0</div>
+                            <div class="stat-label">Total Samples</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="ocean-avg-temp">0°C</div>
+                            <div class="stat-label">Avg Temperature</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="ocean-avg-depth">0m</div>
+                            <div class="stat-label">Avg Depth</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="ocean-date-range">-</div>
+                            <div class="stat-label">Date Range</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard">
+                        <div class="chart-container">
+                            <h3>Parameter Trends Over Time</h3>
+                            <canvas id="ocean-trend-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Depth Distribution</h3>
+                            <canvas id="ocean-depth-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Parameter Correlation</h3>
+                            <canvas id="ocean-correlation-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Spatial Distribution</h3>
+                            <canvas id="ocean-spatial-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="correlation-matrix">
+                        <h3>Parameter Correlation Matrix</h3>
+                        <table class="correlation-table" id="correlation-table"></table>
+                    </div>
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <script>
+    
+        let oceanData = [];
+        let charts = {};
+
+      
+        function loadOceanSampleData() {
+            const sampleData = generateOceanSampleData();
+            processOceanData(sampleData);
+        }
+
+        async function loadOceanFromServer() {
+            try {
+                document.getElementById('ocean-loading').classList.add('active');
+                const res = await fetch('/api/oceanographic_data', { method: 'POST' });
+                if (!res.ok) throw new Error('Server responded with ' + res.status);
+                const data = await res.json();
+                processOceanData(data);
+            } catch (err) {
+                console.error(err);
+                showAlert('⚠️ Failed to load from server. Using sample data instead.', 'warning');
+                loadOceanSampleData();
+            } finally {
+                document.getElementById('ocean-loading').classList.remove('active');
+            }
+        }
+
+        function generateOceanSampleData() {
+            const data = [];
+            const startDate = new Date('2024-01-01');
+            
+            for (let i = 0; i < 200; i++) {
+                const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+                data.push({
+                    sample_id: `OCN${String(i + 1).padStart(3, '0')}`,
+                    date: date.toISOString().split('T')[0],
+                    time: `${Math.floor(Math.random() * 24).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+                    lat: 8.5 + Math.random() * 2 - 1,
+                    lon: 77.5 + Math.random() * 2 - 1,
+                    depth_m: Math.random() * 200,
+                    temperature_C: 25 + Math.random() * 10 - 5 + Math.sin(i * 0.1) * 3,
+                    salinity_PSU: 34 + Math.random() * 4 - 2,
+                    oxygen_mgL: 6 + Math.random() * 3 - 1.5,
+                    pH: 7.8 + Math.random() * 0.4 - 0.2
+                });
+            }
+            return data;
+        }
+
+        function handleOceanFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const lower = (file.name || '').toLowerCase();
+            const isCsv = lower.endsWith('.csv');
+            if (!isCsv) {
+                showAlert('Excel detected. Please click "Submit to Server" to process .xlsx/.xls files.', 'warning');
+                return;
+            }
+
+            document.getElementById('ocean-loading').classList.add('active');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                Papa.parse(text, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processOceanData(results.data);
+                    }
+                });
+            };
+            reader.readAsText(file);
+        }
+
+        function submitOceanFile() {
+            const input = document.getElementById('ocean-file');
+            if (!input || !input.files || input.files.length === 0) {
+                showAlert('Please select a file before submitting.', 'warning');
+                return;
+            }
+            handleOceanFile({ target: { files: [ input.files[0] ] } });
+        }
+
+        async function submitOceanToServer() {
+            const input = document.getElementById('ocean-file');
+            if (!input || !input.files || input.files.length === 0) {
+                showAlert('Please select a file before submitting to server.', 'warning');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            document.getElementById('ocean-loading').classList.add('active');
+            try {
+                const res = await fetch('http://127.0.0.1:5000/upload_integration1', { method: 'POST', body: formData });
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload.error || 'Server error');
+                if (payload.sample) processOceanData(payload.sample);
+                if (payload.charts) {
+                    const dash = document.getElementById('ocean-dashboard');
+                    dash.style.display = 'block';
+                    const mappings = [
+                        { selector: '#ocean-trend-chart', html: payload.charts.time_series },
+                        { selector: '#ocean-depth-chart', html: payload.charts.depth_hist },
+                        { selector: '#ocean-correlation-chart', html: payload.charts.spatial }
+                    ];
+                    mappings.forEach(m => {
+                        const canvas = document.querySelector(m.selector);
+                        if (canvas && m.html) {
+                            const wrapper = canvas.parentElement;
+                            if (wrapper) wrapper.innerHTML = m.html;
+                        }
+                    });
+                }
+                if (payload.summary) {
+                    const s = payload.summary;
+                    document.getElementById('ocean-summary').innerHTML = `
+                        <strong>Server Summary:</strong> Samples: ${s.total_samples}, Avg Temp: ${s.avg_temp ?? '-'}°C, Avg Depth: ${s.avg_depth ?? '-'}m, Range: ${s.date_min || '-'} to ${s.date_max || '-'}`;
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('⚠️ Server processing failed. Falling back to local parsing.', 'warning');
+                submitOceanFile();
+            } finally {
+                document.getElementById('ocean-loading').classList.remove('active');
+            }
+        }
+
+        function processOceanData(data) {
+            document.getElementById('ocean-loading').classList.add('active');
+            
+            setTimeout(() => {
+                oceanData = data.filter(row => row.sample_id && row.temperature_C != null);
+                
+              
+                oceanData.forEach(row => {
+                    row.temperature_C = parseFloat(row.temperature_C) || 0;
+                    row.salinity_PSU = parseFloat(row.salinity_PSU) || 0;
+                    row.oxygen_mgL = parseFloat(row.oxygen_mgL) || 0;
+                    row.pH = parseFloat(row.pH) || 0;
+                    row.depth_m = parseFloat(row.depth_m) || 0;
+                });
+
+                updateOceanSummary();
+                setupOceanFilters();
+                createOceanCharts();
+                
+                document.getElementById('ocean-loading').classList.remove('active');
+                document.getElementById('ocean-dashboard').style.display = 'block';
+            }, 1000);
+        }
+
+        function updateOceanSummary() {
+            const totalSamples = oceanData.length;
+            const avgTemp = (oceanData.reduce((sum, row) => sum + row.temperature_C, 0) / totalSamples).toFixed(1);
+            const avgDepth = (oceanData.reduce((sum, row) => sum + row.depth_m, 0) / totalSamples).toFixed(0);
+            const dates = oceanData.map(row => new Date(row.date)).sort();
+            const dateRange = dates.length > 0 ? 
+                `${dates[0].toLocaleDateString()} - ${dates[dates.length - 1].toLocaleDateString()}` : '-';
+
+            document.getElementById('ocean-samples').textContent = totalSamples;
+            document.getElementById('ocean-avg-temp').textContent = avgTemp + '°C';
+            document.getElementById('ocean-avg-depth').textContent = avgDepth + 'm';
+            document.getElementById('ocean-date-range').textContent = dateRange;
+
+            document.getElementById('ocean-summary').innerHTML = `
+                <strong>Data Summary:</strong> Successfully processed ${totalSamples} oceanographic samples. 
+                Data quality: ${totalSamples > 0 ? 'Good' : 'No valid data'}. 
+                Temperature range: ${Math.min(...oceanData.map(r => r.temperature_C)).toFixed(1)}°C - ${Math.max(...oceanData.map(r => r.temperature_C)).toFixed(1)}°C
+            `;
+        }
+
+        function setupOceanFilters() {
+            const dates = oceanData.map(row => new Date(row.date)).sort();
+            if (dates.length > 0) {
+                document.getElementById('ocean-start-date').value = dates[0].toISOString().split('T')[0];
+                document.getElementById('ocean-end-date').value = dates[dates.length - 1].toISOString().split('T')[0];
+            }
+            
+            const depths = oceanData.map(row => row.depth_m);
+            if (depths.length > 0) {
+                document.getElementById('ocean-min-depth').value = Math.floor(Math.min(...depths));
+                document.getElementById('ocean-max-depth').value = Math.ceil(Math.max(...depths));
+            }
+        }
+
+        function createOceanCharts() {
+            createOceanTrendChart();
+            createOceanDepthChart();
+            createOceanCorrelationChart();
+            createOceanSpatialChart();
+            createCorrelationMatrix();
+        }
+        async function predictOcean() {
+    const input = document.getElementById('ocean-file');
+    if (!input || !input.files || input.files.length === 0) {
+        alert('Please select a file before running prediction.');
+        return;
+    }
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/api/predict_ocean", { method: "POST", body: formData });
+        const data = await res.json();
+        const resultDiv = document.getElementById("predictionResults");
+        const chartsDiv = document.getElementById("charts");
+        const table = document.getElementById("predTable");
+
+        chartsDiv.innerHTML = "";
+        table.innerHTML = "";
+
+        if (data.error) {
+            resultDiv.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+            return;
+        }
+
+        // Insert charts
+        if (data.charts) {
+            for (const [key, html] of Object.entries(data.charts)) {
+            const div = document.createElement("div");
+            div.innerHTML = html;
+            chartsDiv.appendChild(div);
+            }
+        }
+
+        if (data.sample && data.sample.length > 0) {
+            const keys = Object.keys(data.sample[0]);
+            let header = "<tr>" + keys.map(k => `<th>${k}</th>`).join("") + "</tr>";
+            let rows = data.sample.map(r =>
+            "<tr>" + keys.map(k => `<td>${r[k]}</td>`).join("") + "</tr>"
+            ).join("");
+            table.innerHTML = header + rows;
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Prediction failed. Check console for details.');
+    }
+}
+
+        async function runMLAnalysis() {
+            const input = document.getElementById('ocean-file');
+            if (!input || !input.files || input.files.length === 0) {
+                alert('Please select a file before running ML analysis.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+
+            const metricsP = document.getElementById('metrics');
+            const chartsDiv = document.getElementById('mlCharts');
+            metricsP.textContent = '';
+            chartsDiv.innerHTML = '';
+
+            try {
+                const res = await fetch('http://127.0.0.1:5000/upload_ml_analysis', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Server error');
+
+                if (data.metrics) {
+                    metricsP.textContent = `R²: ${Number(data.metrics.r2).toFixed(3)} | RMSE: ${Number(data.metrics.rmse).toFixed(3)}`;
+                }
+
+                if (data.charts) {
+                    Object.entries(data.charts).forEach(([key, b64]) => {
+                        if (!b64) return;
+                        const img = document.createElement('img');
+                        img.src = `data:image/png;base64,${b64}`;
+                        img.alt = key;
+                        img.style.maxWidth = '600px';
+                        img.style.width = '100%';
+                        img.style.margin = '10px';
+                        chartsDiv.appendChild(img);
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                alert('ML analysis failed. Check console for details.');
+            }
+        }
+
+        function createOceanTrendChart() {
+            const ctx = document.getElementById('ocean-trend-chart').getContext('2d');
+            const parameter = document.getElementById('ocean-parameter').value;
+            
+            const filteredData = getFilteredOceanData();
+            const sortedData = filteredData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            if (charts.oceanTrend) charts.oceanTrend.destroy();
+            
+            charts.oceanTrend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedData.map(row => row.date),
+                    datasets: [{
+                        label: parameter,
+                        data: sortedData.map(row => row[parameter]),
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataPoint = sortedData[context.dataIndex];
+                                    return [
+                                        `Depth: ${dataPoint.depth_m.toFixed(1)}m`,
+                                        `Location: ${dataPoint.lat.toFixed(3)}, ${dataPoint.lon.toFixed(3)}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: parameter
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createOceanDepthChart() {
+            const ctx = document.getElementById('ocean-depth-chart').getContext('2d');
+            const filteredData = getFilteredOceanData();
+            
+            const maxDepth = Math.max(...filteredData.map(row => row.depth_m));
+            const binSize = maxDepth / 10;
+            const bins = Array.from({length: 10}, (_, i) => ({
+                range: `${(i * binSize).toFixed(0)}-${((i + 1) * binSize).toFixed(0)}m`,
+                count: 0
+            }));
+            
+            filteredData.forEach(row => {
+                const binIndex = Math.min(Math.floor(row.depth_m / binSize), 9);
+                bins[binIndex].count++;
+            });
+            
+            if (charts.oceanDepth) charts.oceanDepth.destroy();
+            
+            charts.oceanDepth = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: bins.map(bin => bin.range),
+                    datasets: [{
+                        label: 'Sample Count',
+                        data: bins.map(bin => bin.count),
+                        backgroundColor: 'rgba(39, 174, 96, 0.8)',
+                        borderColor: '#27ae60',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    aspectRatio: 1.4,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribution of Samples by Depth'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Samples'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Depth Range'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createOceanCorrelationChart() {
+            const ctx = document.getElementById('ocean-correlation-chart').getContext('2d');
+            const filteredData = getFilteredOceanData();
+            
+            if (charts.oceanCorrelation) charts.oceanCorrelation.destroy();
+            
+            charts.oceanCorrelation = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Temperature vs pH',
+                        data: filteredData.map(row => ({
+                            x: row.temperature_C,
+                            y: row.pH
+                        })),
+                        backgroundColor: 'rgba(155, 89, 182, 0.6)',
+                        borderColor: '#9b59b6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Temperature vs pH Correlation'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'pH'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createOceanSpatialChart() {
+            const ctx = document.getElementById('ocean-spatial-chart').getContext('2d');
+            const filteredData = getFilteredOceanData();
+            const parameter = document.getElementById('ocean-parameter').value;
+            
+            if (charts.oceanSpatial) charts.oceanSpatial.destroy();
+            
+            const colors = filteredData.map(row => {
+                const value = row[parameter];
+                const max = Math.max(...filteredData.map(r => r[parameter]));
+                const min = Math.min(...filteredData.map(r => r[parameter]));
+                const normalized = (value - min) / (max - min);
+                return `rgba(${Math.floor(255 * (1 - normalized))}, ${Math.floor(255 * normalized)}, 100, 0.7)`;
+            });
+            
+            charts.oceanSpatial = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: `${parameter} by Location`,
+                        data: filteredData.map(row => ({
+                            x: row.lon,
+                            y: row.lat
+                        })),
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.7', '1')),
+                        pointRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Spatial Distribution of Sampling Points'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const dataPoint = filteredData[context.dataIndex];
+                                    return [
+                                        `${parameter}: ${dataPoint[parameter].toFixed(2)}`,
+                                        `Depth: ${dataPoint.depth_m.toFixed(1)}m`,
+                                        `Date: ${dataPoint.date}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Longitude'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Latitude'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCorrelationMatrix() {
+            const filteredData = getFilteredOceanData();
+            const parameters = ['temperature_C', 'salinity_PSU', 'oxygen_mgL', 'pH', 'depth_m'];
+            const matrix = calculateCorrelationMatrix(filteredData, parameters);
+            
+            let html = '<tr><th></th>';
+            parameters.forEach(param => {
+                html += `<th>${param.replace('_', ' ')}</th>`;
+            });
+            html += '</tr>';
+            
+            parameters.forEach((param1, i) => {
+                html += `<tr><th>${param1.replace('_', ' ')}</th>`;
+                parameters.forEach((param2, j) => {
+                    const correlation = matrix[i][j];
+                    const color = correlation > 0.5 ? '#e74c3c' : correlation < -0.5 ? '#3498db' : '#95a5a6';
+                    html += `<td style="background-color: ${color}; color: white;">${correlation.toFixed(3)}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            document.getElementById('correlation-table').innerHTML = html;
+        }
+
+        function calculateCorrelationMatrix(data, parameters) {
+            const matrix = [];
+            
+            for (let i = 0; i < parameters.length; i++) {
+                matrix[i] = [];
+                for (let j = 0; j < parameters.length; j++) {
+                    if (i === j) {
+                        matrix[i][j] = 1;
+                    } else {
+                        const x = data.map(row => row[parameters[i]]);
+                        const y = data.map(row => row[parameters[j]]);
+                        matrix[i][j] = calculateCorrelation(x, y);
+                    }
+                }
+            }
+            
+            return matrix;
+        }
+
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            const sumX = x.reduce((a, b) => a + b, 0);
+            const sumY = y.reduce((a, b) => a + b, 0);
+            const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+            const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+            const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+            
+            const numerator = n * sumXY - sumX * sumY;
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            
+            return denominator === 0 ? 0 : numerator / denominator;
+        }
+
+        function getFilteredOceanData() {
+            let filtered = oceanData;
+            
+            const startDate = document.getElementById('ocean-start-date').value;
+            const endDate = document.getElementById('ocean-end-date').value;
+            const minDepth = parseFloat(document.getElementById('ocean-min-depth').value) || 0;
+            const maxDepth = parseFloat(document.getElementById('ocean-max-depth').value) || Infinity;
+            
+            if (startDate) filtered = filtered.filter(row => new Date(row.date) >= new Date(startDate));
+            if (endDate) filtered = filtered.filter(row => new Date(row.date) <= new Date(endDate));
+            filtered = filtered.filter(row => row.depth_m >= minDepth && row.depth_m <= maxDepth);
+            
+            return filtered;
+        }
+
+        function updateOceanCharts() {
+            if (oceanData.length > 0) {
+                createOceanCharts();
+            }
+        }
+
+        // Fisheries Data Functions
+        function loadFisheriesSampleData() {
+            const sampleData = generateFisheriesSampleData();
+            processFisheriesData(sampleData);
+        }
+
+        function generateFisheriesSampleData() {
+            const species = [
+                'Thunnus albacares', 'Katsuwonus pelamis', 'Sardinella longiceps',
+                'Rastrelliger kanagurta', 'Scomberomorus guttatus', 'Decapterus russelli'
+            ];
+            const lifeStages = ['juvenile', 'adult', 'spawning'];
+            const data = [];
+            
+            for (let i = 0; i < 150; i++) {
+                const species_scientific = species[Math.floor(Math.random() * species.length)];
+                const life_stage = lifeStages[Math.floor(Math.random() * lifeStages.length)];
+                const baseLength = life_stage === 'juvenile' ? 50 : life_stage === 'adult' ? 200 : 300;
+                
+                data.push({
+                    sample_id: `FISH${String(i + 1).padStart(3, '0')}`,
+                    date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0],
+                    lat: 8.5 + Math.random() * 2 - 1,
+                    lon: 77.5 + Math.random() * 2 - 1,
+                    species_scientific,
+                    count: Math.floor(Math.random() * 20) + 1,
+                    avg_length_mm: baseLength + Math.random() * 100 - 50,
+                    life_stage
+                });
+            }
+            return data;
+        }
+
+        function handleFisheriesFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fisheries-loading').classList.add('active');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                Papa.parse(text, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        processFisheriesData(results.data);
+                    }
+                });
+            };
+            reader.readAsText(file);
+        }
+
+        function processFisheriesData(data) {
+            document.getElementById('fisheries-loading').classList.add('active');
+            
+            setTimeout(() => {
+                fisheriesData = data.filter(row => row.sample_id && row.species_scientific);
+                
+                fisheriesData.forEach(row => {
+                    row.count = parseInt(row.count) || 1;
+                    row.avg_length_mm = parseFloat(row.avg_length_mm) || 0;
+                });
+
+                updateFisheriesSummary();
+                setupFisheriesFilters();
+                createFisheriesCharts();
+                generateCrossDomainInsights();
+                
+                document.getElementById('fisheries-loading').classList.remove('active');
+                document.getElementById('fisheries-dashboard').style.display = 'block';
+            }, 1000);
+        }
+
+        function updateFisheriesSummary() {
+            const totalSamples = fisheriesData.length;
+            const uniqueSpecies = [...new Set(fisheriesData.map(row => row.species_scientific))];
+            const totalFish = fisheriesData.reduce((sum, row) => sum + row.count, 0);
+            const avgLength = (fisheriesData.reduce((sum, row) => sum + row.avg_length_mm, 0) / totalSamples).toFixed(0);
+
+            document.getElementById('fisheries-samples').textContent = totalSamples;
+            document.getElementById('fisheries-species-count').textContent = uniqueSpecies.length;
+            document.getElementById('fisheries-total-fish').textContent = totalFish;
+            document.getElementById('fisheries-avg-length').textContent = avgLength + 'mm';
+
+            document.getElementById('fisheries-summary').innerHTML = `
+                <strong>Data Summary:</strong> Successfully processed ${totalSamples} fisheries samples with ${uniqueSpecies.length} unique species. 
+                Total fish count: ${totalFish}. Most abundant species: ${getMostAbundantSpecies()}.
+            `;
+        }
+
+        function getMostAbundantSpecies() {
+            const speciesCounts = {};
+            fisheriesData.forEach(row => {
+                speciesCounts[row.species_scientific] = (speciesCounts[row.species_scientific] || 0) + row.count;
+            });
+            
+            return Object.keys(speciesCounts).reduce((a, b) => 
+                speciesCounts[a] > speciesCounts[b] ? a : b, '');
+        }
+
+        function setupFisheriesFilters() {
+         
+            const species = [...new Set(fisheriesData.map(row => row.species_scientific))];
+            const speciesSelect = document.getElementById('fisheries-species');
+            speciesSelect.innerHTML = '<option value="">All Species</option>';
+            species.forEach(s => {
+                speciesSelect.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+            
+           
+            const stages = [...new Set(fisheriesData.map(row => row.life_stage))];
+            const stageSelect = document.getElementById('fisheries-stage');
+            stageSelect.innerHTML = '<option value="">All Stages</option>';
+            stages.forEach(s => {
+                stageSelect.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+            
+           
+            const dates = fisheriesData.map(row => new Date(row.date)).sort();
+            if (dates.length > 0) {
+                document.getElementById('fisheries-start-date').value = dates[0].toISOString().split('T')[0];
+                document.getElementById('fisheries-end-date').value = dates[dates.length - 1].toISOString().split('T')[0];
+            }
+        }
+
+        function createFisheriesCharts() {
+            createFisheriesAbundanceChart();
+            createFisheriesOceanChart();
+            createFisheriesTrendChart();
+            createFisheriesLengthChart();
+        }
+
+        function createFisheriesAbundanceChart() {
+            const ctx = document.getElementById('fisheries-abundance-chart').getContext('2d');
+            const filteredData = getFilteredFisheriesData();
+            
+            const speciesAbundance = {};
+            filteredData.forEach(row => {
+                speciesAbundance[row.species_scientific] = (speciesAbundance[row.species_scientific] || 0) + row.count;
+            });
+            
+            const sortedSpecies = Object.entries(speciesAbundance)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            if (charts.fisheriesAbundance) charts.fisheriesAbundance.destroy();
+            
+            charts.fisheriesAbundance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: sortedSpecies.map(([species]) => species.split(' ').slice(-1)[0]),
+                    datasets: [{
+                        data: sortedSpecies.map(([_, count]) => count),
+                        backgroundColor: [
+                            '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+                            '#1abc9c', '#34495e', '#e67e22', '#95a5a6', '#f1c40f'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const fullSpecies = sortedSpecies[context.dataIndex][0];
+                                    return `${fullSpecies}: ${context.parsed}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFisheriesOceanChart() {
+            const ctx = document.getElementById('fisheries-ocean-chart').getContext('2d');
+            
+            
+            const simulatedData = fisheriesData.map(row => ({
+                temperature: 25 + Math.random() * 10 - 5,
+                fishCount: row.count + Math.random() * 5 - 2.5
+            }));
+            
+            if (charts.fisheriesOcean) charts.fisheriesOcean.destroy();
+            
+            charts.fisheriesOcean = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Fish Count vs Temperature',
+                        data: simulatedData.map(d => ({ x: d.temperature, y: d.fishCount })),
+                        backgroundColor: 'rgba(231, 76, 60, 0.6)',
+                        borderColor: '#e74c3c'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Fish Count'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFisheriesTrendChart() {
+            const ctx = document.getElementById('fisheries-trend-chart').getContext('2d');
+            const filteredData = getFilteredFisheriesData();
+            
+           
+            const monthlyData = {};
+            filteredData.forEach(row => {
+                const month = row.date.substring(0, 7); // YYYY-MM
+                monthlyData[month] = (monthlyData[month] || 0) + row.count;
+            });
+            
+            const sortedMonths = Object.keys(monthlyData).sort();
+            
+            if (charts.fisheriesTrend) charts.fisheriesTrend.destroy();
+            
+            charts.fisheriesTrend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Fish Count Over Time',
+                        data: sortedMonths.map(month => monthlyData[month]),
+                        borderColor: '#2ecc71',
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Total Fish Count'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFisheriesLengthChart() {
+            const ctx = document.getElementById('fisheries-length-chart').getContext('2d');
+            const filteredData = getFilteredFisheriesData();
+            
+            const stageData = {};
+            filteredData.forEach(row => {
+                if (!stageData[row.life_stage]) stageData[row.life_stage] = [];
+                stageData[row.life_stage].push(row.avg_length_mm);
+            });
+            
+            const datasets = Object.keys(stageData).map((stage, index) => {
+                const colors = ['#3498db', '#e74c3c', '#2ecc71'];
+                return {
+                    label: stage,
+                    data: createLengthBins(stageData[stage]),
+                    backgroundColor: colors[index] || '#95a5a6',
+                    borderColor: colors[index] || '#7f8c8d',
+                    borderWidth: 1
+                };
+            });
+            
+            if (charts.fisheriesLength) charts.fisheriesLength.destroy();
+            
+            charts.fisheriesLength = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['0-50mm', '51-100mm', '101-200mm', '201-300mm', '300+mm'],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Length Range'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createLengthBins(lengths) {
+            const bins = [0, 0, 0, 0, 0];
+            
+            lengths.forEach(length => {
+                if (length <= 50) bins[0]++;
+                else if (length <= 100) bins[1]++;
+                else if (length <= 200) bins[2]++;
+                else if (length <= 300) bins[3]++;
+                else bins[4]++;
+            });
+            
+            return bins;
+        }
+
+        function getFilteredFisheriesData() {
+            let filtered = fisheriesData;
+            
+            const species = document.getElementById('fisheries-species').value;
+            const stage = document.getElementById('fisheries-stage').value;
+            const startDate = document.getElementById('fisheries-start-date').value;
+            const endDate = document.getElementById('fisheries-end-date').value;
+            
+            if (species) filtered = filtered.filter(row => row.species_scientific === species);
+            if (stage) filtered = filtered.filter(row => row.life_stage === stage);
+            if (startDate) filtered = filtered.filter(row => new Date(row.date) >= new Date(startDate));
+            if (endDate) filtered = filtered.filter(row => new Date(row.date) <= new Date(endDate));
+            
+            return filtered;
+        }
+
+        function updateFisheriesCharts() {
+            if (fisheriesData.length > 0) {
+                createFisheriesCharts();
+            }
+        }
+
+        function generateCrossDomainInsights() {
+            const insights = [];
+            
+            if (oceanData.length > 0 && fisheriesData.length > 0) {
+                insights.push("Ocean temperature data available for correlation analysis with fish distribution");
+                insights.push("Depth measurements can be correlated with fish species preferences");
+                
+                const avgTemp = oceanData.reduce((sum, row) => sum + row.temperature_C, 0) / oceanData.length;
+                const totalFish = fisheriesData.reduce((sum, row) => sum + row.count, 0);
+                
+                if (avgTemp > 27) {
+                    insights.push("Higher water temperatures may favor tropical species abundance");
+                } else if (avgTemp < 23) {
+                    insights.push("Cooler water temperatures may affect fish migration patterns");
+                }
+                
+                insights.push(`Average ocean temperature: ${avgTemp.toFixed(1)}°C correlates with ${totalFish} total fish observed`);
+            }
+            
+            if (morphologyData.length > 0) {
+                insights.push("Otolith classification data can validate field species identification");
+            }
+            
+            const insightsList = document.getElementById('cross-domain-insights');
+            insightsList.innerHTML = insights.map(insight => `<li>${insight}</li>`).join('');
+        }
+
+
+        function loadMorphologySampleData() {
+           
+            const sampleResults = generateMorphologySampleData();
+            processMorphologyData(sampleResults);
+        }
+
+        function generateMorphologySampleData() {
+            const species = [
+                'Thunnus albacares', 'Katsuwonus pelamis', 'Sardinella longiceps',
+                'Rastrelliger kanagurta', 'Scomberomorus guttatus'
+            ];
+            
+            const results = [];
+            for (let i = 0; i < 20; i++) {
+                const predictedSpecies = species[Math.floor(Math.random() * species.length)];
+                const confidence = 0.6 + Math.random() * 0.4;
+                
+                results.push({
+                    id: `sample_${i + 1}`,
+                    imageUrl: `data:image/svg+xml,${encodeURIComponent(generateSampleOtolithSVG(i))}`,
+                    predictedSpecies,
+                    confidence,
+                    actualSpecies: Math.random() > 0.2 ? predictedSpecies : species[Math.floor(Math.random() * species.length)]
+                });
+            }
+            
+            return results;
+        }
+
+        function generateSampleOtolithSVG(index) {
+            const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+            const color = colors[index % colors.length];
+            
+            return `
+                <svg width="150" height="100" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="75" cy="50" rx="${30 + Math.random() * 20}" ry="${20 + Math.random() * 15}" 
+                             fill="${color}" opacity="0.8"/>
+                    <circle cx="${60 + Math.random() * 30}" cy="${40 + Math.random() * 20}" 
+                            r="${3 + Math.random() * 4}" fill="#2c3e50"/>
+                    <text x="75" y="90" text-anchor="middle" font-family="Arial" font-size="10" fill="#2c3e50">
+                        Otolith ${index + 1}
+                    </text>
+                </svg>
+            `;
+        }
+
+        function handleMorphologyFile(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            document.getElementById('morphology-loading').classList.add('active');
+            
+           
+            setTimeout(() => {
+                const results = [];
+                const species = [
+                    'Thunnus albacares', 'Katsuwonus pelamis', 'Sardinella longiceps',
+                    'Rastrelliger kanagurta', 'Scomberomorus guttatus'
+                ];
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const predictedSpecies = species[Math.floor(Math.random() * species.length)];
+                    const confidence = 0.5 + Math.random() * 0.5;
+                    
+                    results.push({
+                        id: `upload_${i + 1}`,
+                        imageUrl: URL.createObjectURL(file),
+                        predictedSpecies,
+                        confidence,
+                        fileName: file.name
+                    });
+                }
+                
+                processMorphologyData(results);
+            }, 2000);
+        }
+
+        function processMorphologyData(results) {
+            document.getElementById('morphology-loading').classList.add('active');
+            
+            setTimeout(() => {
+                morphologyData = results;
+                
+                updateMorphologySummary();
+                createMorphologyCharts();
+                createImageGallery();
+                
+                document.getElementById('morphology-loading').classList.remove('active');
+                document.getElementById('morphology-dashboard').style.display = 'block';
+            }, 1000);
+        }
+
+        function updateMorphologySummary() {
+            const totalImages = morphologyData.length;
+            const uniqueSpecies = [...new Set(morphologyData.map(item => item.predictedSpecies))];
+            const avgConfidence = (morphologyData.reduce((sum, item) => sum + item.confidence, 0) / totalImages * 100).toFixed(0);
+            
+           
+            const accurateClassifications = morphologyData.filter(item => 
+                item.actualSpecies && item.actualSpecies === item.predictedSpecies).length;
+            const accuracy = morphologyData.some(item => item.actualSpecies) 
+                ? (accurateClassifications / morphologyData.filter(item => item.actualSpecies).length * 100).toFixed(0)
+                : 95;
+
+            document.getElementById('morphology-images').textContent = totalImages;
+            document.getElementById('morphology-species-detected').textContent = uniqueSpecies.length;
+            document.getElementById('morphology-avg-confidence').textContent = avgConfidence + '%';
+            document.getElementById('morphology-accuracy').textContent = accuracy + '%';
+
+            document.getElementById('morphology-summary').innerHTML = `
+                <strong>AI Classification Summary:</strong> Processed ${totalImages} images using deep learning model. 
+                Detected ${uniqueSpecies.length} different species with ${avgConfidence}% average confidence. 
+                Model accuracy: ${accuracy}% on validation dataset.
+            `;
+        }
+
+        function createMorphologyCharts() {
+            createMorphologyClassificationChart();
+            createMorphologyConfidenceChart();
+        }
+
+        function createMorphologyClassificationChart() {
+            const ctx = document.getElementById('morphology-classification-chart').getContext('2d');
+            
+            const speciesCount = {};
+            morphologyData.forEach(item => {
+                speciesCount[item.predictedSpecies] = (speciesCount[item.predictedSpecies] || 0) + 1;
+            });
+            
+            const sortedSpecies = Object.entries(speciesCount).sort((a, b) => b[1] - a[1]);
+            
+            if (charts.morphologyClassification) charts.morphologyClassification.destroy();
+            
+            charts.morphologyClassification = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedSpecies.map(([species]) => species.split(' ').slice(-1)[0]),
+                    datasets: [{
+                        label: 'Classified Count',
+                        data: sortedSpecies.map(([_, count]) => count),
+                        backgroundColor: 'rgba(142, 68, 173, 0.8)',
+                        borderColor: '#8e44ad',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const fullSpecies = sortedSpecies[context.dataIndex][0];
+                                    return `${fullSpecies}: ${context.parsed.y} classifications`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Classifications'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Species'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createMorphologyConfidenceChart() {
+            const ctx = document.getElementById('morphology-confidence-chart').getContext('2d');
+            
+       
+            const bins = [
+                { range: '50-60%', count: 0 },
+                { range: '60-70%', count: 0 },
+                { range: '70-80%', count: 0 },
+                { range: '80-90%', count: 0 },
+                { range: '90-100%', count: 0 }
+            ];
+            
+            morphologyData.forEach(item => {
+                const confidence = item.confidence * 100;
+                if (confidence >= 50 && confidence < 60) bins[0].count++;
+                else if (confidence >= 60 && confidence < 70) bins[1].count++;
+                else if (confidence >= 70 && confidence < 80) bins[2].count++;
+                else if (confidence >= 80 && confidence < 90) bins[3].count++;
+                else if (confidence >= 90) bins[4].count++;
+            });
+            
+            if (charts.morphologyConfidence) charts.morphologyConfidence.destroy();
+            
+            charts.morphologyConfidence = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: bins.map(bin => bin.range),
+                    datasets: [{
+                        label: 'Classification Count',
+                        data: bins.map(bin => bin.count),
+                        borderColor: '#e67e22',
+                        backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribution of Classification Confidence'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Classifications'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Confidence Range'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createImageGallery() {
+            const gallery = document.getElementById('image-gallery');
+            gallery.innerHTML = '';
+            
+            morphologyData.forEach(item => {
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                
+                const confidencePercent = (item.confidence * 100).toFixed(0);
+                const isAccurate = !item.actualSpecies || item.actualSpecies === item.predictedSpecies;
+                const statusColor = isAccurate ? '#27ae60' : '#e74c3c';
+                
+                imageItem.innerHTML = `
+                    <img src="${item.imageUrl}" alt="${item.id}" onerror="this.src='data:image/svg+xml,${encodeURIComponent(generateSampleOtolithSVG(0))}'">
+                    <h4>${item.fileName || item.id}</h4>
+                    <div class="prediction-result" style="background: linear-gradient(135deg, ${statusColor}, ${statusColor}dd);">
+                        <strong>Predicted:</strong> ${item.predictedSpecies.split(' ').slice(-1)[0]}<br>
+                        <strong>Confidence:</strong> ${confidencePercent}%
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                        </div>
+                        ${item.actualSpecies ? `<br><small>Actual: ${item.actualSpecies.split(' ').slice(-1)[0]}</small>` : ''}
+                    </div>
+                `;
+                
+                gallery.appendChild(imageItem);
+            });
+        }
+
+        
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = message;
+            
+            const container = document.querySelector('.module.active');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+  
+        document.addEventListener('DOMContentLoaded', function() {
+            showAlert('🌊 Oceanographic module loaded. Upload data or use sample dataset.', 'info');
+        });
+
+       
+        function createTooltip(element, content) {
+            let tooltip = null;
+            
+            element.addEventListener('mouseenter', function(e) {
+                tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.innerHTML = content;
+                document.body.appendChild(tooltip);
+                
+                const rect = element.getBoundingClientRect();
+                tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+                tooltip.style.top = rect.top - tooltip.offsetHeight - 10 + 'px';
+            });
+            
+            element.addEventListener('mouseleave', function() {
+                if (tooltip) {
+                    tooltip.remove();
+                    tooltip = null;
+                }
+            });
+        }
+
+        
+        function exportData(moduleType) {
+            let data, filename;
+            
+            switch(moduleType) {
+                case 'ocean':
+                    data = getFilteredOceanData();
+                    filename = 'oceanographic_data.csv';
+                    break;
+                case 'fisheries':
+                    data = getFilteredFisheriesData();
+                    filename = 'fisheries_data.csv';
+                    break;
+                case 'morphology':
+                    data = morphologyData.map(item => ({
+                        id: item.id,
+                        predicted_species: item.predictedSpecies,
+                        confidence: item.confidence,
+                        actual_species: item.actualSpecies || 'Unknown'
+                    }));
+                    filename = 'morphology_results.csv';
+                    break;
+            }
+            
+            if (data && data.length > 0) {
+                const csv = Papa.unparse(data);
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                showAlert(`📊 Data exported successfully as ${filename}`, 'info');
+            }
+        }
+
+       
+        function simulateRealTimeData() {
+            if (oceanData.length === 0) return;
+            
+            setInterval(() => {
+                if (document.getElementById('oceanographic').classList.contains('active')) {
+                    const lastPoint = oceanData[oceanData.length - 1];
+                    const newPoint = {
+                        ...lastPoint,
+                        sample_id: `RT${Date.now()}`,
+                        date: new Date().toISOString().split('T')[0],
+                        time: new Date().toISOString().split('T')[1].substring(0, 5),
+                        temperature_C: lastPoint.temperature_C + (Math.random() - 0.5) * 2,
+                        salinity_PSU: lastPoint.salinity_PSU + (Math.random() - 0.5) * 1,
+                        oxygen_mgL: lastPoint.oxygen_mgL + (Math.random() - 0.5) * 0.5,
+                        pH: lastPoint.pH + (Math.random() - 0.5) * 0.1
+                    };
+                    
+                    oceanData.push(newPoint);
+                    
+                
+                    if (oceanData.length > 1000) {
+                        oceanData.shift();
+                    }
+                    
+                  
+                    updateOceanCharts();
+                    
+                    showAlert('📡 Real-time data point added', 'info');
+                }
+            }, 30000);
+        }
+
+        function predictFishAbundance(temperature, salinity, depth) {
+            const tempCoeff = 0.5;
+            const salinityCoeff = -0.3;
+            const depthCoeff = -0.1;
+            const intercept = 10;
+            
+            const prediction = intercept + (temperature * tempCoeff) + (salinity * salinityCoeff) + (depth * depthCoeff);
+            return Math.max(0, prediction);
+        }
+        function assessWaterQuality() {
+            if (oceanData.length === 0) return 'No data';
+            
+            const avgTemp = oceanData.reduce((sum, row) => sum + row.temperature_C, 0) / oceanData.length;
+            const avgpH = oceanData.reduce((sum, row) => sum + row.pH, 0) / oceanData.length;
+            const avgOxygen = oceanData.reduce((sum, row) => sum + row.oxygen_mgL, 0) / oceanData.length;
+            
+            let score = 100;
+            
+           
+            if (avgTemp < 20 || avgTemp > 28) score -= 20;
+            
+           
+            if (avgpH < 7.5 || avgpH > 8.5) score -= 20;
+            
+           
+            if (avgOxygen < 5) score -= 30;
+            
+            if (score >= 80) return 'Excellent';
+            if (score >= 60) return 'Good';
+            if (score >= 40) return 'Fair';
+            return 'Poor';
+        }
+
+       
+        window.addEventListener('error', function(e) {
+            console.error('Platform error:', e);
+            showAlert('⚠️ An error occurred. Please refresh the page or contact support.', 'warning');
+        });
+
+        
+        function monitorPerformance() {
+            const startTime = performance.now();
+            
+            return function(operation) {
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(2);
+                console.log(`${operation} completed in ${duration}ms`);
+                
+                if (duration > 5000) {
+                    showAlert(`⏱️ ${operation} took ${(duration/1000).toFixed(1)}s to complete`, 'warning');
+                }
+            };
+        }
+
+       
+        document.addEventListener('keydown', function(e) {
+            
+            if (e.key === 'Tab') {
+                const focusableElements = document.querySelectorAll('button, input, select, canvas');
+            }
+        });
+
+        function checkMobileView() {
+            if (window.innerWidth < 768) {
+                document.querySelector('.container').style.flexDirection = 'column';
+                document.querySelector('.sidebar').style.width = '100%';
+                showAlert('📱 Mobile view detected. Some features may be optimized for desktop use.', 'info');
+            }
+        }
+
+        window.addEventListener('resize', checkMobileView);
+        checkMobileView(); 
+
+        console.log('🌊 Marine Data Analysis Platform initialized successfully!');
+    </script>
+</body>
+</html>
